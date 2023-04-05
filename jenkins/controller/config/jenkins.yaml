@@ -1,0 +1,118 @@
+jenkins:
+  numExecutors: 0
+  slaveAgentPort: 50000
+  systemMessage:  Jenkins Serverless on AWS ECS Fargate
+  globalNodeProperties:
+  - envVars:
+      env:
+      - key: DEFAULT_ACCOUNT
+        value: ${DEFAULT_ACCOUNT}
+      - key: DEFAULT_ACCOUNT_JENKINS_ROLE
+        value: ${DEFAULT_ACCOUNT_JENKINS_ROLE}
+      - key: TEAM1_APP1_DEV_WORKLOAD_ACCOUNT
+        value: ${TEAM1_APP1_DEV_WORKLOAD_ACCOUNT}
+      - key: TEAM1_APP1_DEV_WORKLOAD_JENKINS_ROLE
+        value: ${TEAM1_APP1_DEV_WORKLOAD_JENKINS_ROLE}
+  agentProtocols:
+    - JNLP4-connect
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: ${JENKINS_USERNAME}
+          password: ${JENKINS_PASSWORD}
+  clouds:
+    - ecs:
+        credentialsId: false
+        cluster: ${ECS_CLUSTER}
+        name: ecs-cloud
+        regionName: ${AWS_REGION}
+        jenkinsUrl: ${JENKINS_URL}
+        tunnel: ${JENKINS_CONTROLLER_PRIVATE_TUNNEL_URL}
+        templates:
+          - label: fargate
+            templateName: jenkins-agent
+            assignPublicIp: true
+            image: ${AGENT_ECR_IMAGE_URL}
+            launchType: FARGATE
+            networkMode: awsvpc
+            cpu: 1024
+            memoryReservation: 2048
+            subnets: ${PRIVATE_SUBNET_IDS}
+            securityGroups: ${AGENT_SECURITY_GROUP_ID}
+            taskRole: ${AGENT_TASK_ROLE_ARN}
+            executionRole: ${AGENT_EXECUTION_ROLE_ARN}
+            logDriver: awslogs
+            logDriverOptions:
+              - name: awslogs-region
+                value: ${AWS_REGION}
+              - name: awslogs-group
+                value: ${LOG_GROUP}
+              - name: awslogs-stream-prefix
+                value: ${LOG_STREAM_PREFIX}
+jobs:
+  - script: >
+      folder('sample-jobs')
+  - script: >
+      pipelineJob('sample-jobs/ecs-fargate-validate-configuration') {
+        definition {
+          cps {
+            script("""\
+              pipeline {
+                agent {
+                  label 'fargate'
+                }
+                stages {
+                  stage ('validate') {
+                    steps {
+                      sh "aws --version"
+                    }
+                  }
+                  stage('build') {
+                    steps {
+                      echo 'Hello from Jenkins agent running on ECS Fargate!'
+                    }
+                  }
+                }
+              }""".stripIndent())
+              sandbox()
+          }
+        }
+      }
+  - script: >
+      pipelineJob('sample-jobs/ecs-fargate-validate-devops-account-create-s3-bucket') {
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/aws-samples/aws-jenkins-ecs-cdk.git')
+                }
+                branch('*/main')
+              }
+            }
+            scriptPath('sample/pipeline-s3/Jenkinsfile')
+            lightweight()
+          }
+        }
+      }
+  - script: >
+      pipelineJob('sample-jobs/ecs-fargate-validate-workload-account-deploy-ec2-webserver') {
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/aws-samples/aws-jenkins-ecs-cdk.git')
+                }
+                branch('*/main')
+              }
+            }
+            scriptPath('sample/pipeline-ec2/Jenkinsfile')
+            lightweight()
+          }
+        }
+      }

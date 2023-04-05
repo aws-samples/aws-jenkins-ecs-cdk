@@ -1,0 +1,19 @@
+pipeline {
+  agent {
+    label 'fargate'
+  }
+
+  stages {
+    stage('deploy webserver') {
+      steps {
+        withAWS(roleAccount:"${TEAM1_APP1_DEV_WORKLOAD_ACCOUNT}", role:"${TEAM1_APP1_DEV_WORKLOAD_JENKINS_ROLE}") {
+          script{
+            vpcId = sh (script: "aws ec2 describe-vpcs --filters Name=isDefault,Values=true --query \"Vpcs[].VpcId\" --region us-east-1 | jq --raw-output '.[]'",returnStdout: true).trim()
+            echo "Deploying to default VPC Id: ${vpcId}"
+            sh "aws cloudformation deploy --template-file sample/pipeline-ec2/cfn-webserver.yaml --stack-name sample-webserver-stack --parameter-overrides DefaultVPCId=${vpcId}"
+          }
+        }
+      }
+    }
+  }
+}

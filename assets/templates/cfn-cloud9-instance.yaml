@@ -1,0 +1,225 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: The AWS CloudFormation template for creating instance role to be assumed by Cloud9 instance to deploy the stack.
+
+Resources:
+  Cloud9InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: cloud9-instance-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "cloud9.amazonaws.com"
+                - "ec2.amazonaws.com"
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AWSCloud9SSMInstanceProfile
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resource role name explicitly named."
+
+  Cloud9InstancePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: cloud9-instance-policy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "cloudformation:*"
+              - "acm-pca:CreateCertificateAuthority"
+              - "acm-pca:ListCertificateAuthorities"
+              - "acm-pca:ListTags"
+              - "acm-pca:TagCertificateAuthority"
+              - "acm-pca:UntagCertificateAuthority"
+              - "iam:ListRoles"
+              - "ec2:DescribeVpcs"
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DescribeImages'
+              - 'ec2:DescribeImportImageTasks'
+              - 'ec2:DescribeInstances'
+              - 'ec2:DescribeSecurityGroupRules'
+              - 'ec2:DescribeInstanceTypes'
+              - 'ec2:DescribeSecurityGroups'
+              - 'ec2:DescribeSecurityGroupReferences'
+              - 'ec2:ReportInstanceStatus' 
+              - 'ec2:RunInstances'
+              - 'ec2:CreateTags'
+              - 'ec2:DescribeTags'
+              - 'ec2:DeleteTags'
+              - 'ec2:DescribeKeyPairs'
+              - "codecommit:ListRepositories"
+              - 'ec2:AuthorizeSecurityGroupIngress'
+              - 'ec2:RevokeSecurityGroupEgress'
+              - 'ec2:RevokeSecurityGroupIngress'
+              - 'ec2:CreateSecurityGroup'
+              - 'ec2:AuthorizeSecurityGroupEgress'
+              - 'ec2:DeleteSecurityGroup'
+              - 'ec2:StartInstances'
+              - 'ec2:StopInstances'
+              - 'ec2:TerminateInstances'
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - "ecr:DescribeRegistry"
+              - "ecr:DeleteRegistryPolicy"
+              - "ecr:PutRegistryPolicy"
+              - "ecr:PutRegistryScanningConfiguration"
+              - "ecr:GetRegistryPolicy"
+              - "ecr:CreateRepository"
+              - "ecr:GetAuthorizationToken"
+              - "ecr:BatchImportUpstreamImage"
+              - "ecr:GetRegistryScanningConfiguration"
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - "acm-pca:ImportCertificateAuthorityCertificate"
+              - "acm-pca:GetCertificate"
+              - "acm-pca:IssueCertificate"
+              - "acm-pca:GetCertificateAuthorityCsr"
+              - "acm-pca:DescribeCertificateAuthority"
+              - "acm-pca:DeleteCertificateAuthority"
+            Resource: !Sub "arn:aws:acm-pca:*:${AWS::AccountId}:certificate-authority/*"
+          - Effect: Allow
+            Action:
+              - "ssm:PutParameter"
+              - "ssm:GetParameter"
+              - "ssm:DeleteParameter"
+            Resource: !Sub "arn:aws:ssm:*:${AWS::AccountId}:parameter/*"
+          - Effect: Allow
+            Action:
+              - "secretsmanager:GetSecretValue"
+              - "secretsmanager:PutSecretValue"
+              - "secretsmanager:CreateSecret"
+              - "secretsmanager:DeleteSecret"
+            Resource: !Sub "arn:aws:secretsmanager:*:${AWS::AccountId}:secret*"
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+            Resource:
+              - "arn:aws:iam::*:role/cdk-*"
+          - Effect: Allow
+            Action:
+              - "codecommit:*"
+            Resource: !Sub "arn:aws:codecommit:*:${AWS::AccountId}:*"
+          - Effect: Allow
+            Action:
+              - "s3:*"
+            Resource: 
+              - "arn:aws:s3:::cdktoolkit-stagingbucket-*"
+              - "arn:aws:s3:::cdk-*"
+          - Effect: Allow
+            Action:
+              - "ec2:CreateKeyPair"
+            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:key-pair/*"
+          - Effect: Allow
+            Action:
+              - "acm:ImportCertificate"
+              - "acm:DeleteCertificate"
+            Resource: !Sub "arn:aws:acm:*:${AWS::AccountId}:certificate/*"
+          - Effect: Allow
+            Action:
+              - "iam:UntagRole"
+              - "iam:TagRole"
+              - "iam:PutRolePermissionsBoundary"
+              - "iam:CreateRole"
+              - "iam:AttachRolePolicy"
+              - "iam:PutRolePolicy"
+              - "iam:DetachRolePolicy"
+              - "iam:PassRole"
+              - "iam:DeleteRolePolicy"
+              - "iam:CreatePolicyVersion"
+              - "iam:GetRole"
+              - "iam:PutUserPermissionsBoundary"
+              - "iam:DeleteRole"
+              - "iam:TagPolicy"
+              - "iam:TagUser"
+              - "iam:CreatePolicy"
+              - "iam:UntagUser"
+              - "iam:PutUserPolicy"
+              - "iam:UntagPolicy"
+              - "iam:UpdateRole"
+              - "iam:UntagInstanceProfile"
+              - "iam:GetRolePolicy"
+              - "iam:TagInstanceProfile"
+              - 'iam:CreateInstanceProfile'
+              - 'iam:DeleteInstanceProfile'
+              - 'iam:RemoveRoleFromInstanceProfile'
+              - 'iam:AddRoleToInstanceProfile'
+            Resource: 
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/*"
+          - Effect: Allow
+            Action:
+              - 'ecr:ListImages'
+              - 'ecr:BatchDeleteImage'
+              - "ecr:TagResource"
+              - "ecr:GetLifecyclePolicy"
+              - "ecr:BatchGetRepositoryScanningConfiguration"
+              - "ecr:GetRepositoryPolicy"
+              - "ecr:StartImageScan"
+              - "ecr:UploadLayerPart"
+              - "ecr:DescribeImageScanFindings"
+              - "ecr:DeleteRepositoryPolicy"
+              - "ecr:DeleteRepository"
+              - "ecr:BatchGetImage"
+              - "ecr:DescribeImageReplicationStatus"
+              - "ecr:DescribeImages"
+              - "ecr:ListTagsForResource"
+              - "ecr:PutImageTagMutability"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:StartLifecyclePolicyPreview"
+              - "ecr:SetRepositoryPolicy"
+              - "ecr:DescribeRepositories"
+              - "ecr:UntagResource"
+              - "ecr:GetLifecyclePolicyPreview"
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:DeleteLifecyclePolicy"
+              - "ecr:ReplicateImage"
+              - "ecr:PutImageScanningConfiguration"
+              - "ecr:PutLifecyclePolicy"
+              - "ecr:PutImage"
+              - "ecr:CompleteLayerUpload"
+              - "ecr:GetDownloadUrlForLayer"
+            Resource: !Sub "arn:aws:ecr:*:${AWS::AccountId}:repository/*"
+      Roles:
+        - !Ref Cloud9InstanceRole
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F4
+            reason: "Actions cannot be restricted to resources."
+          - id: W12
+            reason: "Actions cannot be restricted to resources."
+
+  Cloud9InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: cloud9-instance-profile
+      Roles:
+        - !Ref Cloud9InstanceRole

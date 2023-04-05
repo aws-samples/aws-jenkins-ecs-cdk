@@ -1,0 +1,122 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template to create BastionHost instance in the Public Subnet to access the Jenkins Instance.
+
+Parameters:
+  LatestAmiId:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: /aws/service/ami-windows-latest/Windows_Server-2022-English-Full-Base
+    AllowedValues:
+      - /aws/service/ami-windows-latest/Windows_Server-2022-English-Full-Base
+  InstanceType:
+    Description: Please select an EC2 Instance Type
+    Type: String
+    Default: t3.small
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+  JenkinsVPCId:
+    Description: Please select the VPC for the Jenkins Deployment
+    Type: AWS::EC2::VPC::Id
+  JenkinsPublicSubnetId:
+    Description: Please select a Public Subnet Id from the Jenkins VPC
+    Type: AWS::EC2::Subnet::Id
+  JenkinsVPCCidr:
+    Description: Please specify the CIDR for the Jenkins VPC
+    Type: String
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription:  Must be a valid IP CIDR range of the form x.x.x.x/x
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair to RDP access for Jenkins Administration.
+  AllowedIP:
+    Description: Please provide the IP for access to the Bastion Host
+    Type: String
+
+Resources:
+  BastionHostSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP access via port 3389
+      VpcId: !Ref JenkinsVPCId
+      SecurityGroupEgress:
+        - CidrIp: !Ref AllowedIP
+          Description: Allow all outbound traffic on port 3389 from Instance
+          FromPort: 3389
+          IpProtocol: tcp
+          ToPort: 3389
+        - CidrIp: !Ref JenkinsVPCCidr
+          Description: Allow all outbound traffic on port 443 from Instance to VPC
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+
+  SecurityGroupIngressPortRDP:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow all inbound traffic on port 3389
+      IpProtocol: tcp
+      FromPort: 3389
+      ToPort: 3389
+      GroupId: !Ref BastionHostSecurityGroup
+      CidrIp: !Ref AllowedIP
+
+  BastionHostInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  
+  BastionHostInstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Path: "/"
+      Roles: 
+        - !Ref BastionHostInstanceRole
+
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref BastionHostInstanceProfile
+      KeyName: !Ref "KeyName"
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: "0"
+          GroupSet: 
+            - !Ref BastionHostSecurityGroup
+          SubnetId: !Ref JenkinsPublicSubnetId
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+Outputs:
+  BastionHostIP:
+    Description: The IP of the Web Server Instance
+    Value: !GetAtt BastionHost.PublicIp

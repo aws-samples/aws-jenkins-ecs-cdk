@@ -1,0 +1,155 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: The AWS CloudFormation template for creating jenkins role to be assumed by DevSecOps account to carry out deployment into target workload account(s).
+
+Parameters:
+  DevOpsAccountID:
+    Description : Account ID of the DevOps AWS Account where Jenkins is deployed.
+    Type: String
+    ConstraintDescription: Must be a valid AWS Account ID without hyphens.
+    AllowedPattern: '\d{12}'
+    MinLength: 12
+    MaxLength: 12
+
+Resources:
+  JenkinsDeploymentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: jenkins-deployment-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${DevOpsAccountID}:root
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resource role name explicitly named to be referenced in the Jenkins Global Configuration."
+
+  JenkinsDeploymentPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: jenkins-deployment-policy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'cloudformation:ListStacks'
+              - 'cloudformation:DescribeAccountLimits'
+              - 'cloudformation:EstimateTemplateCost'
+              - 'cloudformation:ValidateTemplate'
+              - 'cloudformation:SignalResource'
+              - 'cloudformation:DescribeChangeSetHooks'
+              - 'cloudformation:CreateChangeSet'
+              - 'cloudformation:DescribeChangeSet'
+              - 'cloudformation:ExecuteChangeSet'
+              - 'cloudformation:DeleteChangeSet'
+              - 'cloudformation:ListChangeSets'
+              - 'cloudformation:DeleteStackInstances'
+              - 'cloudformation:DescribeStackResource'
+              - 'cloudformation:DescribeStackEvents'
+              - 'cloudformation:UpdateStack'
+              - 'cloudformation:ListStackResources'
+              - 'cloudformation:DescribeStackInstance'
+              - 'cloudformation:DescribeStackResources'
+              - 'cloudformation:DescribeStacks'
+              - 'cloudformation:RollbackStack'
+              - 'cloudformation:DescribeStackResourceDrifts'
+              - 'cloudformation:CancelUpdateStack'
+              - 'cloudformation:CreateStackInstances'
+              - 'cloudformation:CreateStack'
+              - 'cloudformation:DetectStackDrift'
+              - 'cloudformation:ContinueUpdateRollback'
+              - 'cloudformation:GetTemplate'
+              - 'cloudformation:UntagResource'
+              - 'cloudformation:GetTemplateSummary'
+              - 'cloudformation:TagResource'   
+              - 'ec2:CreateTags'
+              - 'ec2:DescribeTags'
+              - 'ec2:DeleteTags'
+              - 'ec2:DescribeInstances'
+              - 'ec2:DescribeSecurityGroupRules'
+              - 'ec2:DescribeInstanceTypes'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DescribeImportImageTasks'
+              - 'ec2:DescribeSecurityGroups'
+              - 'ec2:DescribeImages'
+              - 'ec2:DescribeSecurityGroupReferences'
+              - 'ec2:DescribeVpcs'
+              - 'ec2:ReportInstanceStatus' 
+              - 'ec2:AuthorizeSecurityGroupIngress'
+              - 'ec2:RevokeSecurityGroupEgress'
+              - 'ec2:RevokeSecurityGroupIngress'
+              - 'ec2:CreateSecurityGroup'
+              - 'ec2:AuthorizeSecurityGroupEgress'
+              - 'ec2:DeleteSecurityGroup'
+              - 'ec2:StartInstances'
+              - 'ec2:RunInstances'
+              - 'ec2:StopInstances'
+              - 'ec2:TerminateInstances'
+              - 's3:PutAccountPublicAccessBlock'
+              - 's3:PutBucketPolicy'
+              - 's3:PutBucketAcl'
+              - 's3:CreateBucket'
+              - 's3:DeleteBucket'
+              - 's3:PutEncryptionConfiguration'
+              - 's3:GetEncryptionConfiguration'
+              - 's3:PutBucketTagging'
+              - 's3:GetBucketPolicy'
+              - 's3:DeleteJobTagging'
+              - 's3:PutBucketPublicAccessBlock'
+              - 's3:PutAccessPointPublicAccessBlock'
+              - 's3:PutObjectAcl'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'iam:CreateInstanceProfile'
+              - 'iam:DeleteInstanceProfile'
+              - 'iam:RemoveRoleFromInstanceProfile'
+              - 'iam:AddRoleToInstanceProfile'
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:instance-profile/*'
+          - Effect: Allow
+            Action:
+              - 'iam:PassRole'
+              - 'iam:CreateRole'
+              - 'iam:DeleteRole'
+              - 'iam:AttachRolePolicy'
+              - 'iam:DetachRolePolicy'
+              - 'iam:UpdateRole'
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/*'
+      Roles:
+        - !Ref JenkinsDeploymentRole
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W12
+            reason: "Actions cannot be restricted to resources and some are allowed to limit the verbose level to each action."
+
+Outputs:
+  OutJenkinsDeploymentRoleArn:
+    Value: !GetAtt JenkinsDeploymentRole.Arn
+    Export:
+      Name: JenkinsDeploymentRole-Arn
