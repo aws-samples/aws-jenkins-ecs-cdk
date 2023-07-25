@@ -41,7 +41,7 @@ Ensure that you have access completed the Cloud9 setup and have successfully com
 
     - The above command will output a StackId. To see if the stack is completed successfully, run the below command. This will exit once stack is completed. Please note this will take aproximately 5 to 10 mins.
         ```bash
-        aws cloudformation wait stack-create-complete --stack-name jenkins-bastion-host-stack
+        aws cloudformation wait stack-create-complete --stack-name jenkins-bastion-host-stack --region=$CDK_DEFAULT_REGION
         ```
 
 ## Connecting to Bastion Host.

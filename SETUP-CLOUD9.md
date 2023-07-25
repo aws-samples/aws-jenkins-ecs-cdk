@@ -21,7 +21,7 @@ Disable Cloud9 temporary credentials, and create and attach an IAM role for your
 2. Download the CloudFormation template. We will use the template to create the IAM role for the Cloud9 instance.
     ```bash
     cd ~/environment && mkdir cloud9-setup && cd cloud9-setup
-    curl -OL https://raw.githubusercontent.com/nandkv/cfn-samples/main/cfn-cloud9-instance.yaml     
+    curl -OL https://raw.githubusercontent.com/aws-samples/aws-jenkins-ecs-cdk/main/assets/templates/cfn-cloud9-instance.yaml   
     ```
 3. Deploy the CloudFormation template using the below steps and wait for completion:
     ```bash
