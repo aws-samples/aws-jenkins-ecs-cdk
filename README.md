@@ -162,7 +162,7 @@ Leverage AWS services Amazon Elastic Container Service (ECS), Amazon Elastic Con
     - Delete the Windows Bastion Host stack and wait for completion.
         ```bash
         aws cloudformation delete-stack --stack-name jenkins-bastion-host-stack --region $CDK_DEFAULT_REGION
-        aws cloudformation wait stack-delete-complete --stack-name jenkins-bastion-host-stack 
+        aws cloudformation wait stack-delete-complete --stack-name jenkins-bastion-host-stack --region $CDK_DEFAULT_REGION
         ```
 
     - List all the stacks.

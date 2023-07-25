@@ -28,3 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ECR Repo Creation, Lifecycle rules and Container Scanning.
 - Dynamic variables using CDK context.json.
 - CDK Unit tests for the CDK project.
+
+
+## [1.0.1] - 2023-07-25
+
+### Added
+
+- CDK upgrade and minor updates
+
+## Features
+- Upgrade CDK to 2.88.0
+- Updated the Jenkins Configuration Plugin.
+- Updated README and steps.
