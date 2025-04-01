@@ -160,7 +160,7 @@ export class CdkInfraStack extends cdk.Stack {
           type: servicediscovery.NamespaceType.DNS_PRIVATE,
           vpc: vpc
         },
-        containerInsights: true
+        containerInsightsV2: ecs.ContainerInsights.ENABLED
       }
     );
 
