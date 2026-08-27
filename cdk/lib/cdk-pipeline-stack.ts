@@ -9,6 +9,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import * as codecommit from "aws-cdk-lib/aws-codecommit";
 import * as codebuild from "aws-cdk-lib/aws-codebuild";
+import { PipelineType } from "aws-cdk-lib/aws-codepipeline";
 import {
   CodeBuildStep,
   CodePipeline,
@@ -62,6 +63,7 @@ export class CdkPipelineStack extends cdk.Stack {
     /************************************************************************/
     const pipeline = new CodePipeline(this, `${this.stackName}-pipeline`, {
       pipelineName: `${this.stackName}-pipeline`,
+      pipelineType: PipelineType.V2,
       selfMutation: false,
       crossAccountKeys: false,
       synth: new CodeBuildStep(`${this.stackName}-synth`, {
